@@ -19,6 +19,7 @@ COMS_527_Final_Project
 - Deep Q-Learning
 
 **Reference Repositories and Sources:**
+- https://github.com/aome510/chrome-dino-game-rl.git
 - https://github.com/jeffasante/chrome-dino-RL.git
 - https://github.com/e3oroush/dino_run_rl_pytorch.git
 
