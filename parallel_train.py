@@ -236,7 +236,7 @@ def run_single_training(rank, num_gpus):
     torch.distributed.init_process_group(backend="gloo", init_method = 'tcp://localhost:12355', rank=rank, world_size=num_gpus)
     torch.cuda.set_device(rank)
     # make sure that there's no data race
-    torch.distributed.barrier()
+    # torch.distributed.barrier()
 
     # now use attributes of the gym to define the action space
     # Define the DQN networks
