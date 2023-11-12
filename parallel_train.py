@@ -13,43 +13,34 @@ import numpy as np
 import time
 
 from model import DQN
+from train import MemoryReplay
+
+
+
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 # A majority of the codes in this file is based on Pytorch's DQN tutorial [1]
 # [1]: https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
-
+# parallelization code is coming from https://medium.com/polo-club-of-data-science/multi-gpu-training-in-pytorch-with-code-part-3-distributed-data-parallel-d26e93f17c62
+# And https://pytorch.org/tutorials/beginner/ddp_series_multigpu.html
+# https://towardsdatascience.com/distribute-your-pytorch-model-in-less-than-20-lines-of-code-61a786e6e7b0
 
 Transition = namedtuple(
     "Transition", ("state", "action", "next_state", "reward", "terminated")
 )
 
-
-class MemoryReplay(object):
-    def __init__(self, capacity):
-        self.memory = deque([], maxlen=capacity)
-
-    def push(self, *args):
-        self.memory.append(Transition(*args))
-
-    def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
-    
-    
-
-    def __len__(self):
-        return len(self.memory)
-
-
-class Trainer:
+class Parallel_Trainer:
     def __init__(
         self,
+        gpu_id: int,
         env: envs.Wrapper,
         policy_net: DQN,
         target_net: DQN,
-        n_episodes=1, #1000,
+        n_episodes=5,
         lr=1e-4,
-        batch_size=1, #32,
-        replay_size=10, #10_000,  # experience replay's buffer size
-        learning_start=10, #10_000,  # number of frames before learning starts
+        batch_size= 32,
+        replay_size=10_000,  # experience replay's buffer size
+        learning_start= 10_000,  # number of frames before learning starts
         target_update_freq=1_000,  # number of frames between every target network update
         optimize_freq=1,
         gamma=0.99,  # reward decay factor
@@ -59,20 +50,15 @@ class Trainer:
         eps_decay=10_000,
     ):
         self.env = env
+        # There's a few times that I send specific tensors to the gpu. Need to define this string
+        # to make that transition easy
+        self.device = "cuda:" + str(gpu_id)
 
-                # check to see what hardware we can run this on.
-        if torch.backends.mps.is_available():
-            # this is for apple sillicon
-            self.device = torch.device("mps")
-        elif torch.cuda.is_available():
-            # this is for CUDA gpus
-            self.device = "cuda"
-        else:
-            # and if none of the above, then default to using the cpu
-            self.device = "cpu"
+        self.policy_net = policy_net
+        self.target_net = target_net
 
-        self.policy_net = policy_net.to(self.device)
-        self.target_net = target_net.to(self.device)
+
+
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.memory_replay = MemoryReplay(replay_size)
@@ -123,13 +109,14 @@ class Trainer:
         # Convert batch-array of Transitions to a Transition of batch-arrays
         batch = Transition(*zip(*transitions))
 
-        print("Size of batch.state[0]", batch.state[0].size())
-        print("Size of batch.action[0]", batch.action[0].size())
 
 
-        state_batch = torch.stack(batch.state)
-        print("Size of state_batch: ", state_batch.size())
 
+
+
+        state_batch = torch.stack(tuple(batch.state[0].to(self.device)))
+        # need to reshape now
+        state_batch = state_batch.reshape(1, 4, 64, 128)
         action_batch = torch.stack(batch.action)
         next_state_batch = torch.stack(batch.next_state)
         reward_batch = torch.stack(batch.reward)
@@ -139,6 +126,7 @@ class Trainer:
 
         # Compute batch "Q(s, a)"
         # The model returns "Q(s)", then we select the columns of actions taken.
+
         Q_values = (
             self.policy_net(state_batch)
             .gather(1, action_batch.unsqueeze(-1))
@@ -178,7 +166,7 @@ class Trainer:
                 next_state, reward, terminated, *_ = self.env.step(
                     envs.Action(action.item())
                 )
-                next_state = torch.tensor(next_state, device=self.device)
+                next_state = torch.tensor(next_state)
 
                 total_reward += float(reward)
 
@@ -206,13 +194,13 @@ class Trainer:
 
                 if terminated:
                     print(
-                        f"{episode_i} episode, done in {t+1} steps, total reward: {total_reward}"
+                        f"HARDWARE: {self.device} \t episode: {episode_i}\t steps: {t+1}\t reward: {total_reward}"
                     )
                     break
                 else:
                     state = next_state
-
-            if episode_i % 50 == 0:
+            # only save checkpoint for gpu 0
+            if episode_i % 50 == 0 and self.device == "cuda:0":
                 self.save_obs_result(episode_i, self.env.frames)
                 self.save_model_weights(episode_i)
 
@@ -236,24 +224,66 @@ class Trainer:
         torch.save(self.policy_net, file_path)
 
 
-if __name__ == "__main__":
+
+def run_single_training(rank, num_gpus):
+    # every training environment needs a gym 
     env = gym.make("Env-v0", render_mode="rgb_array", game_mode="train")
     env = envs.Wrapper(env, k=4)
 
+    torch.distributed.init_process_group(backend="gloo", init_method = 'tcp://localhost:12355', rank=rank, world_size=num_gpus)
+    torch.cuda.set_device(rank)
+    # make sure that there's no data race
+    torch.distributed.barrier()
+
+    # now use attributes of the gym to define the action space
     # Define the DQN networks
     obs_space = env.observation_space.shape
     assert obs_space is not None
     in_channels = obs_space[0]
-    out_channels = env.action_space.n  # type: ignore
+    out_channels = env.action_space.n
 
+    # these are the models that will be used
     policy_net = DQN(in_channels, out_channels)
     target_net = DQN(in_channels, out_channels)
 
-    trainer = Trainer(env, policy_net, target_net)
-    tic = time.time()
-    
+    # # put the models on the right GPU 
+    policy_net = policy_net.cuda(rank)
+    target_net = target_net.cuda(rank)
+
+    # setup the models with pytorch distributed data parallel
+    policy_net = DDP(policy_net, device_ids=[rank])
+    target_net = DDP(target_net, device_ids=[rank])
+
+    trainer = Parallel_Trainer(rank, env, policy_net, target_net)
+
     trainer.train()
 
-    toc = time.time()
+    print("This is run_single_training function")
 
-    print("Training time: ", toc - tic)
+
+    
+
+
+if __name__ == "__main__":
+    
+
+
+
+    os.environ["MASTER_ADDR"] = 'localhost'
+    os.environ["MASTER_PORT"] = '12355'
+
+    num_gpus = torch.cuda.device_count()
+    print("There are: ", num_gpus, " gpus to be used")
+    print("cuda available: ", torch.cuda.is_available())
+
+    if num_gpus == 0:
+        print("There are no gpus :(")
+        quit()
+
+    print("Starting training")
+    tic = time.time()
+    # the pytorch multiprocessing spawn takes the function and spins up multiple copies of it on different pieces of hardware
+    torch.multiprocessing.spawn(run_single_training, args=(num_gpus, ), nprocs=num_gpus, join = True)
+
+    print("Done training")
+    print("Elapsed Training time: ", time.time() - tic)
