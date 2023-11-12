@@ -52,6 +52,7 @@ class Parallel_Trainer:
         self.env = env
         # There's a few times that I send specific tensors to the gpu. Need to define this string
         # to make that transition easy
+        self.gpu_id = gpu_id
         self.device = "cuda:" + str(gpu_id)
 
         self.policy_net = policy_net
@@ -84,7 +85,7 @@ class Parallel_Trainer:
         )
 
         # Initialize folder to save training results
-        folder_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+        folder_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M") + str(self.gpu_id)
         folder_path = os.path.join("results", folder_name)
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
