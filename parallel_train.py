@@ -195,8 +195,9 @@ class Parallel_Trainer:
                     self._optimize()
 
                 if terminated:
+                    current_time = datetime.datetime.now().strftime("%H-%M")
                     print(
-                        f"HARDWARE: {self.device} \t episode: {episode_i}\t steps: {t+1}\t reward: {total_reward}"
+                        f"HARDWARE: {self.device} \t episode: {episode_i}\t steps: {t+1}\t reward: {total_reward} \t {current_time}"
                     )
                     break
                 else:
@@ -269,7 +270,7 @@ def run_single_training(rank, num_gpus):
 
 if __name__ == "__main__":
     
-
+    total_episodes = 1000
 
 
     os.environ["MASTER_ADDR"] = 'localhost'
@@ -279,6 +280,8 @@ if __name__ == "__main__":
     print("There are: ", num_gpus, " gpus to be used")
     print("cuda available: ", torch.cuda.is_available())
 
+    episodes_per_GPU = round(total_episodes/num_gpus)
+
     if num_gpus == 0:
         print("There are no gpus :(")
         quit()
@@ -286,7 +289,7 @@ if __name__ == "__main__":
     print("Starting training")
     tic = time.time()
     # the pytorch multiprocessing spawn takes the function and spins up multiple copies of it on different pieces of hardware
-    torch.multiprocessing.spawn(run_single_training, args=(num_gpus, ), nprocs=num_gpus, join = True)
+    torch.multiprocessing.spawn(run_single_training, args=(num_gpus), nprocs=num_gpus, join = True)
 
     print("Done training")
     print("Elapsed Training time: ", time.time() - tic)
