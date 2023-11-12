@@ -195,7 +195,7 @@ class Parallel_Trainer:
                     self._optimize()
 
                 if terminated:
-                    current_time = datetime.datetime.now().strftime("%H-%M")
+                    current_time = str(datetime.datetime.now().strftime("%H-%M"))
                     print(
                         f"HARDWARE: {self.device} \t episode: {episode_i}\t steps: {t+1}\t reward: {total_reward} \t {current_time}"
                     )
@@ -289,7 +289,7 @@ if __name__ == "__main__":
     print("Starting training")
     tic = time.time()
     # the pytorch multiprocessing spawn takes the function and spins up multiple copies of it on different pieces of hardware
-    torch.multiprocessing.spawn(run_single_training, args=(num_gpus), nprocs=num_gpus, join = True)
+    torch.multiprocessing.spawn(run_single_training, args=(num_gpus, ), nprocs=num_gpus, join = True)
 
     print("Done training")
     print("Elapsed Training time: ", time.time() - tic)
