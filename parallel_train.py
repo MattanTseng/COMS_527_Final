@@ -36,7 +36,7 @@ class Parallel_Trainer:
         env: envs.Wrapper,
         policy_net: DQN,
         target_net: DQN,
-        n_episodes=1000,
+        n_episodes=5,
         lr=1e-4,
         batch_size= 1, #32,
         replay_size=10, #10_000,  # experience replay's buffer size
@@ -55,6 +55,7 @@ class Parallel_Trainer:
         self.gpu_id = gpu_id
         self.device = "cuda:" + str(gpu_id)
 
+        print("Parallel Trainer constructor: ", self.device)
         self.policy_net = policy_net
         self.target_net = target_net
 
