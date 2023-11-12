@@ -36,7 +36,7 @@ class Parallel_Trainer:
         env: envs.Wrapper,
         policy_net: DQN,
         target_net: DQN,
-        n_episodes=5,
+        n_episodes=500,
         lr=1e-4,
         batch_size= 32,
         replay_size=10_000,  # experience replay's buffer size
@@ -108,17 +108,17 @@ class Parallel_Trainer:
     def _optimize(self):
         transitions = self.memory_replay.sample(self.batch_size)
 
+        
+
         # Convert batch-array of Transitions to a Transition of batch-arrays
         batch = Transition(*zip(*transitions))
 
+        # print("Size of batch.state[0]", batch.state[0].size())
+        # print("Size of batch.action[0]", batch.action[0].size())
 
-
-
-
-
-        state_batch = torch.stack(tuple(batch.state[0].to(self.device)))
+        state_batch = torch.stack(batch.state)
         # need to reshape now
-        state_batch = state_batch.reshape(1, 4, 64, 128)
+        # state_batch = state_batch.reshape(1, 4, 64, 128)
         action_batch = torch.stack(batch.action)
         next_state_batch = torch.stack(batch.next_state)
         reward_batch = torch.stack(batch.reward)
@@ -173,7 +173,7 @@ class Parallel_Trainer:
                 total_reward += float(reward)
 
                 self.memory_replay.push(
-                    state,
+                    state.to(self.device),
                     action,
                     next_state,
                     torch.tensor(reward, device=self.device),
@@ -195,7 +195,7 @@ class Parallel_Trainer:
                     self._optimize()
 
                 if terminated:
-                    current_time = str(datetime.datetime.now().strftime("%H-%M"))
+                    current_time = str(datetime.datetime.now().strftime("%H-%M-%S"))
                     print(
                         f"HARDWARE: {self.device} \t episode: {episode_i}\t steps: {t+1}\t reward: {total_reward} \t {current_time}"
                     )

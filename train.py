@@ -45,11 +45,11 @@ class Trainer:
         env: envs.Wrapper,
         policy_net: DQN,
         target_net: DQN,
-        n_episodes=1, #1000,
+        n_episodes=85, #1000,
         lr=1e-4,
-        batch_size=1, #32,
-        replay_size=10, #10_000,  # experience replay's buffer size
-        learning_start=10, #10_000,  # number of frames before learning starts
+        batch_size=32,
+        replay_size=10_000,  # experience replay's buffer size
+        learning_start=10_000,  # number of frames before learning starts
         target_update_freq=1_000,  # number of frames between every target network update
         optimize_freq=1,
         gamma=0.99,  # reward decay factor
