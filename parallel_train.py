@@ -35,7 +35,7 @@ class Parallel_Trainer:
         gpu_id: int,
         env: envs.Wrapper,
         policy_net: DQN,
-        target_net: DQN,
+        #target_net: DQN,
         n_episodes=500,
         lr=1e-4,
         batch_size= 32,
@@ -57,7 +57,12 @@ class Parallel_Trainer:
 
         print("Parallel Trainer constructor: ", self.device)
         self.policy_net = policy_net
-        self.target_net = target_net
+
+        obs_space = env.observation_space.shape
+        assert obs_space is not None
+        in_channels = obs_space[0]
+        out_channels = env.action_space.n
+        self.target_net = DQN()
 
 
 
@@ -248,17 +253,17 @@ def run_single_training(rank, num_gpus):
 
     # these are the models that will be used
     policy_net = DQN(in_channels, out_channels)
-    target_net = DQN(in_channels, out_channels)
+    #target_net = DQN(in_channels, out_channels)
 
     # # put the models on the right GPU 
     policy_net = policy_net.cuda(rank)
-    target_net = target_net.cuda(rank)
+    #target_net = target_net.cuda(rank)
 
     # setup the models with pytorch distributed data parallel
     policy_net = DDP(policy_net, device_ids=[rank])
-    target_net = DDP(target_net, device_ids=[rank])
+    #target_net = DDP(target_net, device_ids=[rank])
 
-    trainer = Parallel_Trainer(rank, env, policy_net, target_net)
+    trainer = Parallel_Trainer(rank, env, policy_net) #, target_net)
 
     trainer.train()
 
