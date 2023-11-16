@@ -100,7 +100,9 @@ class Parallel_Trainer:
         folder_path = os.path.join("results", folder_name)
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
-        os.makedirs(folder_path)
+        
+        if self.device == "cuda:0":
+            os.makedirs(folder_path)
         self.folder_path = folder_path
 
     def _select_action(self, state: torch.Tensor) -> torch.Tensor:

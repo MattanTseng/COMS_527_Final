@@ -10,6 +10,7 @@ import pandas as pd
 import datetime
 import torch.distributed as dist
 from model import DQN
+import os
 
 
 from model import DQN
@@ -102,6 +103,34 @@ def ai_play(model_path: str):
     env.close()
 
     return total_reward, len(env.frames)
+
+
+def find_models(dir_path: str):
+    all_files = os.listdir(dir_path)
+    pth_files = [file for file in all_files if file.endswith(".pth")]
+
+    return pth_files
+
+
+
+def test_models_in_dir(dir_path: str):
+    pth_files = find_models(dir_path)
+
+    results = pd.DataFrame()
+
+    for model in pth_files:
+        model_name = os.path.splitext(model)
+        reward_col = model_name + "_reward"
+        frame_col = model_name + "_reward"
+
+        rewards, frames = ai_play(model)
+
+        results[reward_col] = rewards
+        results[frame_col] = frames
+
+
+    results.to_csv("checkpoint_comparison.csv", index=False)
+
 
 
 # if __name__ == "__main__":
