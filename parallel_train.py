@@ -36,6 +36,7 @@ class Parallel_Trainer:
         gpu_id: int,
         env: envs.Wrapper,
         policy_net: DQN, #target_net: DQN,
+        file_path: str,
         n_episodes=82,
         lr=1e-4,
         batch_size= 32,
@@ -95,15 +96,8 @@ class Parallel_Trainer:
             -1.0 * n_steps / eps_decay
         )
 
-        # Initialize folder to save training results
-        folder_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
-        folder_path = os.path.join("results", folder_name)
-        if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)
-        
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-        self.folder_path = folder_path
+    
+        self.folder_path = file_path
 
     def _select_action(self, state: torch.Tensor) -> torch.Tensor:
         """Select the next action given the current state following the eps-greedy policy"""
@@ -119,8 +113,6 @@ class Parallel_Trainer:
 
     def _optimize(self):
         transitions = self.memory_replay.sample(self.batch_size)
-
-        
 
         # Convert batch-array of Transitions to a Transition of batch-arrays
         batch = Transition(*zip(*transitions))
@@ -268,7 +260,7 @@ class Parallel_Trainer:
 
 
 
-def run_single_training(rank, num_gpus):
+def run_single_training(rank, num_gpus, folder_path: str):
     print("Running run_single_trainins: ", rank)
     # every training environment needs a gym 
     env = gym.make("Env-v0", render_mode="rgb_array", game_mode="train")
@@ -298,7 +290,7 @@ def run_single_training(rank, num_gpus):
     policy_net = DDP(policy_net, device_ids=[rank])
     #target_net = DDP(target_net, device_ids=[rank])
 
-    trainer = Parallel_Trainer(rank, env, policy_net) #, target_net)
+    trainer = Parallel_Trainer(rank, env, policy_net, folder_path) #, target_net)
 
     trainer.train()
 
@@ -311,6 +303,15 @@ def run_single_training(rank, num_gpus):
 if __name__ == "__main__":
     
     total_episodes = 1000
+
+    # Initialize folder to save training results
+    folder_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+    folder_path = os.path.join("results", folder_name)
+    if os.path.exists(folder_path):
+        shutil.rmtree(folder_path)
+    
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 
 
     os.environ["MASTER_ADDR"] = 'localhost'
@@ -329,7 +330,7 @@ if __name__ == "__main__":
     print("Starting training")
     tic = time.time()
     # the pytorch multiprocessing spawn takes the function and spins up multiple copies of it on different pieces of hardware
-    torch.multiprocessing.spawn(run_single_training, args=(num_gpus, ), nprocs=num_gpus, join = True)
+    torch.multiprocessing.spawn(run_single_training, args=(num_gpus, folder_path), nprocs=num_gpus, join = True)
 
     print("Done training")
     print("Elapsed Training time: ", time.time() - tic)
