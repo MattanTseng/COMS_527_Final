@@ -206,7 +206,7 @@ class Parallel_Trainer:
                     self.n_steps > self.learning_start
                     and self.n_steps % self.target_update_freq == 0
                 ):
-                    self.target_net.load_state_dict(self.policy_net.state_dict())
+                    self.target_net.load_state_dict(self.policy_net.module.state_dict())
 
                 # Optimize the policy network
                 if (
