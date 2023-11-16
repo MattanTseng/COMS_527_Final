@@ -123,14 +123,18 @@ def test_models_in_dir(dir_path: str):
     results = pd.DataFrame()
 
     for model in pth_files:
+        rewards = []
+        frames = []
         model_name = str(os.path.splitext(model)[0])
         reward_col = model_name + "_reward"
         frame_col = model_name + "_frame"
+        for i in range(0, 10):
+            reward, frame = ai_play(os.path.join(dir_path, model))
+            rewards = rewards + [reward]
+            frames = frames + [frame]
 
-        rewards, frames = ai_play(os.path.join(dir_path, model))
-
-        results[reward_col] = [rewards]
-        results[frame_col] = [frames]
+        results[reward_col] = rewards
+        results[frame_col] = frames
 
 
     results.to_csv("checkpoint_comparison.csv", index=False)
