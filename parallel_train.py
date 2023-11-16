@@ -101,7 +101,7 @@ class Parallel_Trainer:
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
         
-        if self.device == "cuda:0":
+        if not os.path.exists(folder_path):
             os.makedirs(folder_path)
         self.folder_path = folder_path
 
