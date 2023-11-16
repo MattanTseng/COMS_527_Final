@@ -256,7 +256,7 @@ class Parallel_Trainer:
 
         time_stats = pd.DataFrame({"Back Prop Time": [self.back_prop_time]})
         time_stats_filename = self.folder_path + "/time_stats.csv"
-        rewards.to_csv(time_stats_filename, index=False)
+        time_stats.to_csv(time_stats_filename, index=False)
 
 
 

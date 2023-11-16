@@ -109,7 +109,11 @@ def find_models(dir_path: str):
     all_files = os.listdir(dir_path)
     pth_files = [file for file in all_files if file.endswith(".pth")]
 
-    return pth_files
+
+    state_dict_pth_files = [s for s in pth_files if "state_dict" in s]
+
+
+    return state_dict_pth_files
 
 
 
@@ -119,14 +123,14 @@ def test_models_in_dir(dir_path: str):
     results = pd.DataFrame()
 
     for model in pth_files:
-        model_name = str(os.path.splitext(model))
+        model_name = str(os.path.splitext(model)[0])
         reward_col = model_name + "_reward"
-        frame_col = model_name + "_reward"
+        frame_col = model_name + "_frame"
 
         rewards, frames = ai_play(os.path.join(dir_path, model))
 
-        results[reward_col] = rewards
-        results[frame_col] = frames
+        results[reward_col] = [rewards]
+        results[frame_col] = [frames]
 
 
     results.to_csv("checkpoint_comparison.csv", index=False)
@@ -147,7 +151,7 @@ def test_models_in_dir(dir_path: str):
 
 
 if __name__ == "__main__":
-    test_models_in_dir("C:/Users/Matta/Documents/Python/COMS_527_Final/results/23-11-12-12-37")
+    test_models_in_dir("C:/Users/Matta/Documents/Python/COMS_527_Final/results/23-11-16-15-43")
     
     # model = sys.argv[1]
     # n_trials = int(sys.argv[2])
