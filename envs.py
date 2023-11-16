@@ -47,6 +47,7 @@ class GameMode(str, enum.Enum):
 class RenderMode(str, enum.Enum):
     HUMAN = "human"
     RGB = "rgb_array"
+    HEADLESS = "headless"
 
 
 class Assets:
@@ -262,7 +263,7 @@ class Track(EnvObject):
 class Env(gym.Env):
     metadata = {
         "render_fps": RENDER_FPS,
-        "render_modes": [RenderMode.HUMAN, RenderMode.RGB],
+        "render_modes": [RenderMode.HUMAN, RenderMode.RGB, RenderMode.HEADLESS],
     }
 
     def __init__(

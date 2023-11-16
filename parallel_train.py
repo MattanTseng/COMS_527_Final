@@ -35,7 +35,7 @@ class Parallel_Trainer:
         gpu_id: int,
         env: envs.Wrapper,
         policy_net: DQN, #target_net: DQN,
-        n_episodes=100,
+        n_episodes=51,
         lr=1e-4,
         batch_size= 32,
         replay_size=10_000,  # experience replay's buffer size
@@ -231,6 +231,9 @@ class Parallel_Trainer:
     def save_model_weights(self, episode_i: int):
         file_path = os.path.join(self.folder_path, f"model-{episode_i}.pth")
         torch.save(self.policy_net, file_path)
+
+        state_dict_file_path = os.path.join(self.folder_path, f"model-{episode_i}state_dict.pth")
+        torch.save(self.policy_net.module.state_dict(), file_path)
 
 
 
