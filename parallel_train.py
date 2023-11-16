@@ -11,6 +11,7 @@ import random
 import envs
 import numpy as np
 import time
+import pandas as pd 
 
 from model import DQN
 from train import MemoryReplay
@@ -35,7 +36,7 @@ class Parallel_Trainer:
         gpu_id: int,
         env: envs.Wrapper,
         policy_net: DQN, #target_net: DQN,
-        n_episodes=51,
+        n_episodes=1000,
         lr=1e-4,
         batch_size= 32,
         replay_size=10_000,  # experience replay's buffer size
@@ -48,6 +49,9 @@ class Parallel_Trainer:
         eps_end=0.01,
         eps_decay=10_000,
     ):
+        self.back_prop_time = 0
+        
+        self.training_reward = []
         self.env = env
         # There's a few times that I send specific tensors to the gpu. Need to define this string
         # to make that transition easy
@@ -92,7 +96,7 @@ class Parallel_Trainer:
         )
 
         # Initialize folder to save training results
-        folder_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M") + "gpu_" + str(self.gpu_id)
+        folder_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
         folder_path = os.path.join("results", folder_name)
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
@@ -156,7 +160,16 @@ class Parallel_Trainer:
 
         # Optimize the model
         self.optimizer.zero_grad()
+
+        # start backprop timer
+        tic = time.time()
         loss.backward()
+        # stop backprop timer
+        toc = time.time()
+        this_backwards_time = toc - tic
+        # store and update cumulative backprop time
+        self.back_prop_time = self.back_prop_time + this_backwards_time
+        
         self.optimizer.step()
 
     def train(self):
@@ -208,12 +221,17 @@ class Parallel_Trainer:
                     break
                 else:
                     state = next_state
+            
+            self.training_reward = self.training_reward + [total_reward]
+
             # only save checkpoint for gpu 0
             if episode_i % 50 == 0 and self.device == "cuda:0":
                 self.save_obs_result(episode_i, self.env.frames)
                 self.save_model_weights(episode_i)
 
         self.env.close()
+        # save the losses and rewards for all of the trainings
+        self.save_training_stats()
 
     def save_obs_result(self, episode_i: int, obs_arr: list[np.ndarray]):
         frames = [Image.fromarray(obs, "RGB") for obs in obs_arr]
@@ -233,7 +251,18 @@ class Parallel_Trainer:
         torch.save(self.policy_net, file_path)
 
         state_dict_file_path = os.path.join(self.folder_path, f"model-{episode_i}state_dict.pth")
-        torch.save(self.policy_net.module.state_dict(), file_path)
+        torch.save(self.policy_net.module.state_dict(), state_dict_file_path)
+
+
+    def save_training_stats(self):
+        # also save the losses for each episode so we can see how fast this thing is learning
+        rewards = pd.DataFrame({"Rewards": self.training_reward})
+        reward_file_name = self.folder_path + "/training_rewards.csv"
+        rewards.to_csv(reward_file_name, index=False)
+
+        time_stats = pd.DataFrame({"Back Prop Time": [self.back_prop_time]})
+        time_stats_filename = self.folder_path + "/time_stats.csv"
+        rewards.to_csv(time_stats_filename, index=False)
 
 
 
