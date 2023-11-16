@@ -119,11 +119,11 @@ def test_models_in_dir(dir_path: str):
     results = pd.DataFrame()
 
     for model in pth_files:
-        model_name = os.path.splitext(model)
+        model_name = str(os.path.splitext(model))
         reward_col = model_name + "_reward"
         frame_col = model_name + "_reward"
 
-        rewards, frames = ai_play(model)
+        rewards, frames = ai_play(os.path.join(dir_path, model))
 
         results[reward_col] = rewards
         results[frame_col] = frames
@@ -147,25 +147,27 @@ def test_models_in_dir(dir_path: str):
 
 
 if __name__ == "__main__":
-    model = sys.argv[1]
-    n_trials = int(sys.argv[2])
-    rewards = []
-    frames = []
+    test_models_in_dir("C:/Users/Matta/Documents/Python/COMS_527_Final/results/23-11-12-12-37")
+    
+    # model = sys.argv[1]
+    # n_trials = int(sys.argv[2])
+    # rewards = []
+    # frames = []
 
-    print(f"Validating for {n_trials} number of trials")
+    # print(f"Validating for {n_trials} number of trials")
 
-    for n in range(0, n_trials):
-        print(f"Trial: {n}")
-        this_reward, this_frame = ai_play(model)
-        rewards = rewards + [this_reward]
-        frames = frames + [this_frame]
+    # for n in range(0, n_trials):
+    #     print(f"Trial: {n}")
+    #     this_reward, this_frame = ai_play(model)
+    #     rewards = rewards + [this_reward]
+    #     frames = frames + [this_frame]
 
-        # Create a DataFrame
-    df = pd.DataFrame({'Rewards': rewards, 'Frames': frames})
+    #     # Create a DataFrame
+    # df = pd.DataFrame({'Rewards': rewards, 'Frames': frames})
 
-    output_name = datetime.datetime.now().strftime("%H-%m-%d-%m-%y") + str(".csv")
-    # Save the DataFrame to a CSV file
-    df.to_csv(output_name, index=False)
+    # output_name = datetime.datetime.now().strftime("%H-%m-%d-%m-%y") + str(".csv")
+    # # Save the DataFrame to a CSV file
+    # df.to_csv(output_name, index=False)
         
 
     

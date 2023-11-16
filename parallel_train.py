@@ -36,7 +36,7 @@ class Parallel_Trainer:
         gpu_id: int,
         env: envs.Wrapper,
         policy_net: DQN, #target_net: DQN,
-        n_episodes=1000,
+        n_episodes=82,
         lr=1e-4,
         batch_size= 32,
         replay_size=10_000,  # experience replay's buffer size
@@ -196,7 +196,7 @@ class Parallel_Trainer:
                 self.memory_replay.push(
                     state.to(self.device),
                     action,
-                    next_state,
+                    next_state.to(self.device),
                     torch.tensor(reward, device=self.device),
                     terminated,
                 )
