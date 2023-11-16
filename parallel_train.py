@@ -34,9 +34,8 @@ class Parallel_Trainer:
         self,
         gpu_id: int,
         env: envs.Wrapper,
-        policy_net: DQN,
-        #target_net: DQN,
-        n_episodes=500,
+        policy_net: DQN, #target_net: DQN,
+        n_episodes=100,
         lr=1e-4,
         batch_size= 32,
         replay_size=10_000,  # experience replay's buffer size
@@ -62,11 +61,13 @@ class Parallel_Trainer:
         assert obs_space is not None
         in_channels = obs_space[0]
         out_channels = env.action_space.n
-        self.target_net = DQN()
+        self.target_net = DQN(in_channels, out_channels)
+        self.target_net = self.target_net.to(self.device)
 
 
 
-        self.target_net.load_state_dict(self.policy_net.state_dict())
+
+        # self.target_net.load_state_dict(policy_net.state_dict())
 
         self.memory_replay = MemoryReplay(replay_size)
 
