@@ -15,6 +15,7 @@ import pandas as pd
 
 from model import DQN
 from train import MemoryReplay
+import yaml
 
 
 
@@ -37,7 +38,7 @@ class Parallel_Trainer:
         env: envs.Wrapper,
         policy_net: DQN, #target_net: DQN,
         file_path: str,
-        n_episodes=82,
+        n_episodes=5,
         lr=1e-4,
         batch_size= 32,
         replay_size=10_000,  # experience replay's buffer size
@@ -69,6 +70,8 @@ class Parallel_Trainer:
         self.target_net = DQN(in_channels, out_channels)
         self.target_net = self.target_net.to(self.device)
 
+        self.start_time = time.time()
+        self.checkpoint_times = []
 
 
 
@@ -163,7 +166,6 @@ class Parallel_Trainer:
         this_backwards_time = toc - tic
         # store and update cumulative backprop time
         self.back_prop_time = self.back_prop_time + this_backwards_time
-        
         self.optimizer.step()
 
     def train(self):
@@ -241,6 +243,7 @@ class Parallel_Trainer:
         )
 
     def save_model_weights(self, episode_i: int):
+        self.checkpoint_times = self.checkpoint_times + [time.time()]
         file_path = os.path.join(self.folder_path, f"model-{episode_i}.pth")
         torch.save(self.policy_net, file_path)
 
@@ -254,9 +257,16 @@ class Parallel_Trainer:
         reward_file_name = self.folder_path + "/training_rewards.csv"
         rewards.to_csv(reward_file_name, index=False)
 
-        time_stats = pd.DataFrame({"Back Prop Time": [self.back_prop_time]})
-        time_stats_filename = self.folder_path + "/time_stats.csv"
-        time_stats.to_csv(time_stats_filename, index=False)
+        # we've been recording
+        time_stats = {
+            "Start Time": self.start_time,
+            "Back Prop Time": self.back_prop_time, 
+            "Checkpoint Time": self.checkpoint_times
+        }
+        time_stats_filename = str(self.gpu_id) + "time_stats.YAML"
+        time_stats_filename = os.path.join(self.folder_path, time_stats_filename)
+        with open(time_stats_filename, 'w') as yaml_file:
+            yaml.dump(time_stats, yaml_file, default_flow_style=False)
 
 
 
@@ -301,6 +311,8 @@ def run_single_training(rank, num_gpus, folder_path: str):
 
 
 if __name__ == "__main__":
+
+
     
     total_episodes = 1000
 
