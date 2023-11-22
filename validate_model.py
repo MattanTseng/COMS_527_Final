@@ -11,6 +11,7 @@ import datetime
 import torch.distributed as dist
 from model import DQN
 import os
+import multiprocessing
 
 
 from model import DQN
@@ -73,6 +74,8 @@ def play_with_model(
     return total_reward
 
 
+
+# given the path to a model, play the dinosaur game in headless mode. 
 def ai_play(model_path: str):
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")  # type: ignore
 
@@ -105,6 +108,7 @@ def ai_play(model_path: str):
     return total_reward, len(env.frames)
 
 
+# function to pull out all state_dict models in a certain directory
 def find_models(dir_path: str):
     all_files = os.listdir(dir_path)
     pth_files = [file for file in all_files if file.endswith(".pth")]
@@ -117,6 +121,7 @@ def find_models(dir_path: str):
 
 
 
+# this function tests the intermediate checkpoints to visualize training progress
 def test_models_in_dir(dir_path: str):
     pth_files = find_models(dir_path)
 
@@ -151,6 +156,14 @@ def test_models_in_dir(dir_path: str):
 #         human_play()
 #     else:
 #         ai_play(args.model_path)
+
+# to validate a model, spin up multiple instances at the same time
+def run_parallel(model_path: str):
+    pool = multiprocessing.Pool()
+
+    scores, frames = pool.map(ai_play(model_path))
+
+
 
 
 

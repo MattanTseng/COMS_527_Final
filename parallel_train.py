@@ -38,12 +38,12 @@ class Parallel_Trainer:
         env: envs.Wrapper,
         policy_net: DQN, #target_net: DQN,
         file_path: str,
-        n_episodes=5,
+        n_episodes=1000,
         lr=1e-4,
         batch_size= 32,
         replay_size=10_000,  # experience replay's buffer size
         learning_start= 10_000,  # number of frames before learning starts
-        target_update_freq=1_000,  # number of frames between every target network update
+        target_update_freq=500,  # number of frames between every target network update
         optimize_freq=1,
         gamma=0.99,  # reward decay factor
         # explore/exploit eps-greedy policy
@@ -72,7 +72,6 @@ class Parallel_Trainer:
 
         self.start_time = time.time()
         self.checkpoint_times = []
-
 
 
         # self.target_net.load_state_dict(policy_net.state_dict())
@@ -259,6 +258,9 @@ class Parallel_Trainer:
 
         # we've been recording
         time_stats = {
+            "Update Frequency": self.target_update_freq,
+            "Number Episodes": self.n_episodes, 
+            "Batch Size": self.batch_size,
             "Start Time": self.start_time,
             "Back Prop Time": self.back_prop_time, 
             "Checkpoint Time": self.checkpoint_times
