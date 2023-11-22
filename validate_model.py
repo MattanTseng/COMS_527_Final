@@ -11,7 +11,9 @@ import datetime
 import torch.distributed as dist
 from model import DQN
 import os
-import multiprocessing
+import torch.multiprocessing as mp
+
+from MultiEnv import MultiEnv
 
 
 from model import DQN
@@ -76,7 +78,7 @@ def play_with_model(
 
 
 # given the path to a model, play the dinosaur game in headless mode. 
-def ai_play(model_path: str, instance_number: int = 0):
+def ai_play(model_path: str):
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")  # type: ignore
 
 
@@ -92,7 +94,6 @@ def ai_play(model_path: str, instance_number: int = 0):
     policy_net = DQN(in_channels, out_channels)
     policy_net.load_state_dict(torch.load(model_path))
 
-    
     policy_net = policy_net.to(device)
 
     
@@ -157,32 +158,63 @@ def test_models_in_dir(dir_path: str):
 #     else:
 #         ai_play(args.model_path)
 
+# https://pytorch.org/docs/stable/notes/multiprocessing.html
+# https://discuss.pytorch.org/t/how-do-i-run-inference-in-parallel/126757
 # to validate a model, spin up multiple instances at the same time
-def run_parallel(model_path: str, num_instance: int):
-    instance_inputs = [(model_path, count) for count in range(num_instance)]
+def run_single_validation(rank, model_path: str, results_q: mp.Queue, instances_per_gpu: int = 1):
+    rewards = []
+    frames = []
+    for _ in range(instances_per_gpu):
+        this_reward, this_frame = ai_play(model_path)
+        rewards = rewards + [this_reward]
+        frames = frames + [this_frame]
 
-
-    with multiprocessing.Pool() as pool:
-        results = pool.map(ai_play, instance_inputs)
-
-    print(results)
-
-
-
-
+    # put the results from the run into the shared memory
+    this_result = []
+    for i in range(instances_per_gpu):
+        this_result = this_result + [(rewards[i], frames[i])]
     
+    results_q.put(tuple(this_result))
+
+
+# https://discuss.pytorch.org/t/how-do-i-run-inference-in-parallel/126757
+def validate_parallel(model_location: str, num_gpus: int = 1, instances_per_gpu: int = 1):
+    results = mp.Queue()
     
+    world_size = num_gpus
 
 
+    mp.spawn(run_single_validation, 
+            args=(model_location,results, instances_per_gpu),
+            nprocs=world_size,
+            join=True)
+    
+    # get the results from the shared memory
+    cumulative_results = []
+    for _ in range(num_gpus):
+        cumulative_results.extend(results.get())
 
+    df_to_save = pd.DataFrame(cumulative_results, columns=["Rewards", "Frames"])
+    csv_name = "single_model_trials.csv"
+    df_to_save.to_csv(csv_name, index=False)
 
+    return cumulative_results
+    
 
 if __name__ == "__main__":
-    # test_models_in_dir("C:/Users/Matta/Documents/Python/COMS_527_Final/results/23-11-16-15-43")
+    folder_loc = "C:/Users/Matta/Documents/Python/COMS_527_Final/results/23-11-16-15-43/"
+    num_gpus = torch.cuda.device_count()
+    print("Num gpus: ", num_gpus)
 
+    # run a trial with all models in this folder. 
+    test_models_in_dir(folder_loc)
+
+    # test the last trained model
+    model_loc = os.path.join(folder_loc, "model-50state_dict.pth")
     print("Spinning up instances in parallel for validation")
-    run_parallel("C:/Users/Matta/Documents/Python/COMS_527_Final/results/23-11-16-15-43/model-50state_dict.pth", 2)
+    validation_results = validate_parallel(model_loc, num_gpus, 5)
 
+    print("Validation results: ", validation_results)
     # model = sys.argv[1]
     # n_trials = int(sys.argv[2])
     # rewards = []

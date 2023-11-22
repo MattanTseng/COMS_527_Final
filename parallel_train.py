@@ -313,11 +313,6 @@ def run_single_training(rank, num_gpus, folder_path: str):
 
 
 if __name__ == "__main__":
-
-
-    
-    total_episodes = 1000
-
     # Initialize folder to save training results
     folder_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
     folder_path = os.path.join("results", folder_name)
@@ -334,8 +329,6 @@ if __name__ == "__main__":
     num_gpus = torch.cuda.device_count()
     print("There are: ", num_gpus, " gpus to be used")
     print("cuda available: ", torch.cuda.is_available())
-
-    episodes_per_GPU = round(total_episodes/num_gpus)
 
     if num_gpus == 0:
         print("There are no gpus :(")

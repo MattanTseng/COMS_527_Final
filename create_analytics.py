@@ -20,7 +20,6 @@ def validate_checkpoints():
     rewards = checkpoint_df.filter(like = "reward")
 
     numeric_part = rewards.columns.str.extract(r'model-(\d+)state_dict_reward', expand = False).astype(int)
-    print(numeric_part)
 
     rewards = rewards[sorted(rewards.columns, key=lambda x: numeric_part[rewards.columns.get_loc(x)])]
 
@@ -49,15 +48,5 @@ def validation_analytics():
 
 
 if __name__ == "__main__":
-    # validate_checkpoints()
-
-
-    test_dir = "./test.YAML"
-
-    data = {
-        "Test": 123, 
-        "bananas": 456
-    }
-
-    with open(test_dir, 'w') as yaml_file:
-        yaml.dump(data, yaml_file, default_flow_style=False)
+    # training_analytics()
+    validate_checkpoints()
