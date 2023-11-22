@@ -5,6 +5,7 @@ __pycache__/
 
 results/
 Final_Results/
+sandbox.py
 
 # C extensions
 *.so

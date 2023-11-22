@@ -76,7 +76,7 @@ def play_with_model(
 
 
 # given the path to a model, play the dinosaur game in headless mode. 
-def ai_play(model_path: str):
+def ai_play(model_path: str, instance_number: int = 0):
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")  # type: ignore
 
 
@@ -158,18 +158,31 @@ def test_models_in_dir(dir_path: str):
 #         ai_play(args.model_path)
 
 # to validate a model, spin up multiple instances at the same time
-def run_parallel(model_path: str):
-    pool = multiprocessing.Pool()
+def run_parallel(model_path: str, num_instance: int):
+    instance_inputs = [(model_path, count) for count in range(num_instance)]
 
-    scores, frames = pool.map(ai_play(model_path))
+
+    with multiprocessing.Pool() as pool:
+        results = pool.map(ai_play, instance_inputs)
+
+    print(results)
+
+
+
+
+    
+    
 
 
 
 
 
 if __name__ == "__main__":
-    test_models_in_dir("C:/Users/Matta/Documents/Python/COMS_527_Final/results/23-11-16-15-43")
-    
+    # test_models_in_dir("C:/Users/Matta/Documents/Python/COMS_527_Final/results/23-11-16-15-43")
+
+    print("Spinning up instances in parallel for validation")
+    run_parallel("C:/Users/Matta/Documents/Python/COMS_527_Final/results/23-11-16-15-43/model-50state_dict.pth", 2)
+
     # model = sys.argv[1]
     # n_trials = int(sys.argv[2])
     # rewards = []

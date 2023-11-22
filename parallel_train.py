@@ -41,10 +41,10 @@ class Parallel_Trainer:
         n_episodes=1000,
         lr=1e-4,
         batch_size= 32,
-        replay_size=10_000,  # experience replay's buffer size
-        learning_start= 10_000,  # number of frames before learning starts
+        replay_size=5_000,  # experience replay's buffer size
+        learning_start= 5_000,  # number of frames before learning starts
         target_update_freq=500,  # number of frames between every target network update
-        optimize_freq=1,
+        optimize_freq=2,
         gamma=0.99,  # reward decay factor
         # explore/exploit eps-greedy policy
         eps_start=1.0,
