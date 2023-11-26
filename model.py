@@ -45,7 +45,7 @@ class DQN_pytorch(nn.Module):
 
         self.layer1 = nn.Linear(14880, 256)
         self.layer2 = nn.Linear(256, 128)
-        self.layer3 = nn.Linear(64, n_actions)
+        self.layer3 = nn.Linear(128, n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
