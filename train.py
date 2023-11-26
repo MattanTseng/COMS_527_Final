@@ -46,7 +46,7 @@ class Trainer:
         env: envs.Wrapper,
         policy_net: DQN,
         target_net: DQN,
-        n_episodes=85, #1000,
+        n_episodes=1000,
         lr=1e-4,
         batch_size=32,
         replay_size=10_000,  # experience replay's buffer size
@@ -110,8 +110,11 @@ class Trainer:
         """Select the next action given the current state following the eps-greedy policy"""
         eps = self._get_eps(self.n_steps)
 
+
         if random.random() > eps:
             # exploit
+            print("size of state: ", state.size())
+            print("Size of state.unsqueeze(0)", state.unsqueeze(0).size())
             with torch.no_grad():
                 return self.policy_net(state.unsqueeze(0)).max(dim=1)[1][0]
         else:

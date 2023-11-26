@@ -20,7 +20,9 @@ class DQN(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(3072, 256), nn.ReLU(), nn.Linear(256, out_channels)
+            nn.Linear(3072, 256),
+            nn.ReLU(),
+            nn.Linear(256, out_channels),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -35,14 +37,21 @@ class DQN(nn.Module):
 class DQN_pytorch(nn.Module):
 
     def __init__(self, n_observations, n_actions):
-        super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions)
+        super(DQN_pytorch, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(n_observations, 32, kernel_size=8, stride=4),
+            nn.ReLU(),
+        )
+
+        self.layer1 = nn.Linear(14880, 256)
+        self.layer2 = nn.Linear(256, 128)
+        self.layer3 = nn.Linear(64, n_actions)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
+        x = self.conv(x)
+        x = torch.flatten(x, 1)
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         return self.layer3(x)
