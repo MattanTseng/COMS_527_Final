@@ -13,6 +13,7 @@ import numpy as np
 import time
 
 from model import DQN
+from model import DQN_pytorch
 
 # A majority of the codes in this file is based on Pytorch's DQN tutorial [1]
 # [1]: https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
@@ -246,8 +247,11 @@ if __name__ == "__main__":
     in_channels = obs_space[0]
     out_channels = env.action_space.n  # type: ignore
 
-    policy_net = DQN(in_channels, out_channels)
-    target_net = DQN(in_channels, out_channels)
+    # policy_net = DQN(in_channels, out_channels)
+    # target_net = DQN(in_channels, out_channels)
+
+    policy_net = DQN_pytorch(in_channels, out_channels)
+    target_net = DQN_pytorch(in_channels, out_channels)
 
     trainer = Trainer(env, policy_net, target_net)
     tic = time.time()
