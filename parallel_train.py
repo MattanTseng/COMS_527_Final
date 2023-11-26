@@ -13,7 +13,7 @@ import numpy as np
 import time
 import pandas as pd 
 
-from model import DQN
+from model import DQN_pytorch as DQN
 from train import MemoryReplay
 import yaml
 
